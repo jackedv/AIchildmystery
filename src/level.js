@@ -4,7 +4,8 @@ export const LEVEL = {
   goalText:"想想办法，帮公主安全过河吧！", initialAlt:"公主站在左岸，观察图里的物体，想办法安全过河", promptFolder:"river",
   layout:"公主和两个空木桶在左岸；长桥板在左岸铰接点上竖立；树枝挂绳在左岸；木架滑轮在右岸，长绳延伸到河中央；两岸和浅水中都有石块。",
   locations:["left_bank","right_bank","river_or_crossing","unclear"], successLocation:"right_bank",
-  successPosition:"公主已经上岸，双脚站在右岸草地", challengePlacement:[135,312,255,382], successPlacement:[1180,340,235,362],
+  objectCounts:{barrels:2},
+  challengePlacement:[135,312,255,382],
   constraints: ["只能使用图中已经出现的物体。", "用一句话描述方案。"],
   intro: ["王子还在远方等着公主。\n可是，一条河挡住了她的去路。", "公主不能独自游过这条河。\n你能用眼前的东西，帮她安全到达对岸吗？"],
   objects: [
@@ -40,8 +41,8 @@ export const CASTLE_LEVEL = {
   intro:["穿过河流，公主来到了城堡外。\n王子就在城堡的另一边等着她。","守卫正在门口核对送货单。\n你能让公主平安进入庭院，不伤害任何人，也不触发警报吗？"],
   layout:"公主在城墙外前景。主门在右侧，守卫正在验单，货篮、盖章送货单、篷布送货车在主门外。左侧有完整木梯和宽平墙顶，中部有带外侧插销的未上锁侧门，下方有干燥且两端可见的排水通道。主门两片门扇之间的远处绿色草地属于城墙内侧庭院。车夫正等候验单，车内是不透明篷布。",
   locations:["outside_wall","courtyard","wall_or_passage","unclear"],successLocation:"courtyard",
-  successPosition:"公主站在城墙内侧庭院草地，主门两片门扇之间的远处草地；不站在门口外的土路上，也不在墙顶或通道中途",
-  challengePlacement:[125,482,213,320], successPlacement:[1353,354,78,120],
+  objectCounts:{guard:1,cargo:1,cart:1,ladder:1},
+  challengePlacement:[125,482,213,320],
   objects:[
     {id:"princess",name:"公主",fact:"公主穿着白色裙子，站在城墙外的土路上。",areas:[[125,482,213,320]]},
     {id:"guard",name:"守卫",fact:"主门旁有一名守卫，正在看手里的送货单。他穿着头盔和护甲。",areas:[[1207,447,97,228]]},

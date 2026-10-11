@@ -11,6 +11,6 @@
 
 一句话可以包括多个逗号连接的动作；不按标点数机械否决，清楚连贯的一段简短计划可理解为一个方案，不为形式反复追问。
 
-success/failure 返回具体而简短的 reason 和动作完成后的 changes，question=""。成功人物已在 sceneFacts.successPosition；失败停在初始安全位置，不描绘伤害。clarify 只输出真正必要的 question，其余不适用字段空。不要追问专业细节，不暗示另外一种解法，不责备孩子。
+success/failure 返回具体简短的 reason 和完整方案最终状态 changes，question=""。另输出 moment（description、princessAction、princessLocation、sceneChanges），选取最能展示核心创意的一幅关键过程：公主本人正在使用必要道具，尚在执行计划。完整方案成功不意味着这一帧必须到终点。比如提菜篮假扮送货人，选公主在城门外拿着菜篮面对守卫的瞬间，篮子与盖章单据随她移动；绑桶木筏，选公主乘着绑好的两桶在河上移动，原岸边不再有这两个桶；不能只写“公主站在右岸/庭院”。moment 的位置使用 schema 枚举，描述清晰的动作和物体变化，不新增隐形工具/制服。失败也选安全尝试的关键过程，不描绘伤害。clarify 的 moment 文本留空、princessLocation="unclear"。不要追问专业细节，不暗示另一种解法，不责备孩子。
 
 仅 success 输出五项 scores；failure 和 clarify 必须 scores=[]，禁止给失败或追问附带评分。成功每项 0–10 整数及不超过 35 字的理由：physical 物理推理（利用基本特性），imagination 想象力（用途或组合新意），observation 观察力（玩家表达里利用的细节），planning 规划力（主要行动顺序），safety 安全意识（明确措施或常规安全程度）。评分针对方案，不评价孩子；常见办法也能通关，未写安全细节可以在分数里反映，不能再用低安全分推翻通关。不给总分、排名或虚构孩子观察到了未提及的细节。

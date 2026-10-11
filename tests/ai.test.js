@@ -12,8 +12,9 @@ const controller=()=>new AbortController();
 const png=(await sharp({create:{width:1672,height:941,channels:3,background:'#9ab583'}}).png().toBuffer()).toString('base64');
 const judge=(status="success")=>({status,normalized:"用绳子荡过去",understanding:"你想抓住吊绳过河。",objectIds:["swing_rope","princess"],actions:["抓住","摆荡"],confidence:.9,reason:"绳子固定在树枝上，摆荡能到另一边。",question:status==="clarify"?"你想使用哪个物体？":"",changes:"公主抓住吊绳摆到右岸。",
   checks:status==="success"?{clarity:"pass",constraints:"pass",physics:"pass",goal:"pass"}:status==="failure"?{clarity:"pass",constraints:"pass",physics:"fail",goal:"not_evaluated"}:{clarity:"unclear",constraints:"not_evaluated",physics:"not_evaluated",goal:"not_evaluated"},
+  moment:{description:status==="clarify"?"":"公主抓住绳子在河上摆荡",princessAction:status==="clarify"?"":"抓绳摆荡",princessLocation:status==="clarify"?"unclear":status==="failure"?"left_bank":"river_or_crossing",sceneChanges:status==="clarify"?"":"吊绳随动作弯曲，公主双手抓绳"},
   scores:status==="success"?SCORE_DIMENSIONS.map(d=>({dimension:d.id,score:7,reason:"这次方案体现了具体的思考。"})):[]});
-const narration={consistent:true,princessLocation:"right_bank",constraintsRespected:true,identityPreserved:true,objectScalePreserved:true,backgroundPreserved:true,causalStructureMatches:true,understanding:"你想用吊绳过河。",change:"公主到达了另一边。",reason:"绳子固定住，摆荡时托住了她。"};
+const narration={consistent:true,keyMomentMatches:true,visibleObjectCounts:{barrels:2},princessLocation:"river_or_crossing",constraintsRespected:true,identityPreserved:true,objectScalePreserved:true,backgroundPreserved:true,causalStructureMatches:true,understanding:"你想用吊绳过河。",change:"公主正在抓绳摆荡。",reason:"绳子固定住，摆荡时托住她到达另一边。"};
 function mockTransport(sequence,calls) {
   return async(url,options)=>{
     calls.push({url,body:JSON.parse(options.body),headers:options.headers});
@@ -38,6 +39,11 @@ test("完整调用链使用指定模型、原图，无 UI，最后核对才返�
   assert.equal(calls[1].body.image.length,3);
   assert.ok(calls[1].body.prompt.includes("princess-success.png"));assert.ok(calls[1].body.prompt.includes("rope_tree.png"));
   assert.equal(calls[0].body.messages[0].role,"system");assert.equal(calls[0].body.messages[1].role,"user");
+  assert.ok(calls[1].body.prompt.includes('关键过程瞬间'));
+  // Keep the generated acting character; do not paste another static princess over it.
+  const pixels=await sharp(Buffer.from(r.image.split(',')[1],'base64')).raw().toBuffer({resolveWithObject:true});
+  const offset=(350*1672+1190)*pixels.info.channels;
+  assert.deepEqual([...pixels.data.subarray(offset,offset+3)],[154,181,131]);
 });
 test("借用本地物体素材、合并重复滑轮参考，最多10张图",async()=>{
   const calls=[];const j={...judge(),objectIds:["bridge","barrels","pulley","long_rope","stones","swing_rope"]};
@@ -62,10 +68,14 @@ test("拒绝无效对象ID与格式错误",async()=>{
 test("明显矛盾的图不产生成功状态",async()=>{
   await assert.rejects(evaluator([judge(),png,{...narration,consistent:false},png,{...narration,consistent:false}])(input("用绳子荡过去"),controller().signal),e=>e.kind==="image");
 });
-test("方案成功而公主还在途中，重生成一次后核对才允许通关",async()=>{
-  const calls=[];const r=await evaluator([judge(),png,{...narration,princessLocation:"river_or_crossing"},png,narration],calls)(input("用绳子荡过去"),controller().signal);
+test("关键过程仍在途中可成功；只有终点站立或关键动作缺失才重生成",async()=>{
+  const first=[];assert.equal((await evaluator([judge(),png,narration],first)(input("用绳子荡过去"),controller().signal)).status,"success");assert.equal(first.length,3);
+  const wrong={...narration,princessLocation:"right_bank",keyMomentMatches:false};
+  const calls=[];const r=await evaluator([judge(),png,wrong,png,narration],calls)(input("用绳子荡过去"),controller().signal);
   assert.equal(r.status,"success");assert.equal(calls.length,5);
-  await assert.rejects(evaluator([judge(),png,{...narration,princessLocation:"river_or_crossing"},png,{...narration,princessLocation:"river_or_crossing"}])(input("用绳子荡过去"),controller().signal),e=>e.kind==="image");
+  await assert.rejects(evaluator([judge(),png,wrong,png,wrong])(input("用绳子荡过去"),controller().signal),e=>e.kind==="image");
+  const noAction={...narration,keyMomentMatches:false};
+  await assert.rejects(evaluator([judge(),png,noAction,png,noAction])(input("用绳子荡过去"),controller().signal),e=>e.kind==="image");
 });
 test("核图自称一致但物体尺寸不符，必须纠正或返回图像异常",async()=>{
   const calls=[],wrong={...narration,objectScalePreserved:false,change:"长板被缩成了短桨。"};
@@ -82,10 +92,10 @@ test("长度、关卡、上下文不能绕过入口校验",()=>{
   for(const body of [input(""),input("好".repeat(81)),{...input("搭石头"),levelId:"other"},{...input("搭石头"),context:"bad"}])assert.throws(()=>validateAttempt(body),AiError);
 });
 
-test("第二关使用独立事实与物体，只在庭院内且不伤人报警时返回成功",async()=>{
+test("第二关判断完整方案，画面保留门外的关键过程且不伤人报警",async()=>{
   const body={levelId:CASTLE_LEVEL.id,text:"打开侧门外的插销，从侧门进入"};
-  const j={...judge(),objectIds:["princess","side_gate"],normalized:body.text,changes:"侧门打开，公主在庭院内"};
-  const n={...narration,princessLocation:"courtyard"};
+  const j={...judge(),objectIds:["princess","side_gate"],normalized:body.text,changes:"侧门打开，公主在庭院内",moment:{description:"公主在门外打开插销",princessAction:"手打开插销",princessLocation:"outside_wall",sceneChanges:"侧门插销打开"}};
+  const n={...narration,visibleObjectCounts:{guard:1,cargo:1,cart:1,ladder:1},princessLocation:"outside_wall"};
   const calls=[],r=await evaluator([j,png,n],calls)(body,controller().signal);
   assert.equal(r.status,"success");
   const facts=JSON.parse(calls[0].body.messages[1].content[0].text).sceneFacts;
@@ -93,7 +103,7 @@ test("第二关使用独立事实与物体，只在庭院内且不伤人报警�
   assert.ok(calls[0].body.response_format.json_schema.schema.properties.objectIds.items.enum.includes('side_gate'));
   assert.ok(!calls[0].body.response_format.json_schema.schema.properties.objectIds.items.enum.includes('bridge'));
   await assert.rejects(evaluator([{...j,objectIds:['bridge']}])(body,controller().signal),e=>e.kind==='format');
-  for(const wrong of [{...n,princessLocation:'outside_wall'},{...n,constraintsRespected:false}])
+  for(const wrong of [{...n,princessLocation:'courtyard'},{...n,constraintsRespected:false}])
     await assert.rejects(evaluator([j,png,wrong,png,wrong])(body,controller().signal),e=>e.kind==='image');
 });
 
@@ -101,9 +111,16 @@ test("生图损坏或比例不符时不产生通关记录",async()=>{
   const tiny=(await sharp({create:{width:100,height:100,channels:3,background:'#fff'}}).png().toBuffer()).toString('base64');
   await assert.rejects(evaluator([judge(),tiny])(input("用绳子荡过去"),controller().signal),e=>e.kind==='image');
 });
+test("核图自称一致也要核对物品数量，重复桶需重生成",async()=>{
+  const wrong={...narration,visibleObjectCounts:{barrels:4}},calls=[];
+  const r=await evaluator([judge(),png,wrong,png,narration],calls)(input("用绳子荡过去"),controller().signal);
+  assert.equal(r.status,"success");assert.equal(calls.length,5);assert.ok(calls[3].body.prompt.includes('actualCounts'));
+  await assert.rejects(evaluator([judge(),png,wrong,png,wrong])(input("用绳子荡过去"),controller().signal),e=>e.kind==='image');
+});
 test("判定不得跳步；成功必须有五项有效评分",async()=>{
   const base=judge();
   for(const j of [
+    {...base,moment:undefined}, {...base,moment:{...base.moment,princessLocation:"unclear"}},
     {...base,checks:{clarity:"unclear",constraints:"pass",physics:"pass",goal:"pass"}},
     {...base,scores:[]}, {...base,scores:base.scores.map(s=>({...s,score:11}))},
     {...base,scores:base.scores.map(s=>({...s,dimension:"physical"}))},

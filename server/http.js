@@ -36,7 +36,7 @@ export async function createGameServer({root,config,evaluate,journal=true,attemp
     }
     if(!["GET","HEAD"].includes(req.method)) return json(res,{error:"method"},405);
     const file=pathname==="/"?"index.html":pathname.slice(1);
-    if(!/^(index\.html|styles\.css|src\/[a-z-]+\.js|assets\/[a-zA-Z0-9_./-]+)$/.test(file) || file.split("/").includes("..")) return json(res,{error:"not_found"},404);
+    if(!/^(index\.html|game\.html|styles\.css|landing\.css|startup\.css|src\/[a-z-]+\.js|assets\/[a-zA-Z0-9_./-]+)$/.test(file) || file.split("/").includes("..")) return json(res,{error:"not_found"},404);
     const absolute=path.resolve(root,file);
     if(!absolute.startsWith(path.resolve(root)+path.sep)) return json(res,{error:"not_found"},404);
     try {

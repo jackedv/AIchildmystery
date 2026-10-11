@@ -9,7 +9,10 @@ test("本地完整入口可打开，私有文件不可访问，空Key保留未�
   await new Promise(r=>server.listen(0,"127.0.0.1",r));
   const base="http://127.0.0.1:"+server.address().port;
   try {
-    for(const file of ["/","/styles.css","/src/app.js","/assets/level-1/scene-initial.png","/assets/level-2/scene-initial.png","/assets/characters/princess-challenge.png","/assets/characters/princess-success.png","/assets/ui/title-board-empty.png","/assets/ui/input-clean.png","/assets/audio/forest.mp3"])assert.equal((await fetch(base+file)).status,200,file);
+    for(const file of ["/","/game.html","/landing.css","/src/landing.js","/assets/landing/hero.png","/assets/landing/river.png","/styles.css","/src/app.js","/assets/level-1/scene-initial.png","/assets/level-2/scene-initial.png","/assets/characters/princess-challenge.png","/assets/characters/princess-success.png","/assets/ui/title-board-empty.png","/assets/ui/input-clean.png","/assets/audio/forest.mp3"])assert.equal((await fetch(base+file)).status,200,file);
+    const landing=await (await fetch(base+'/')).text();
+    assert.equal((landing.match(/href="game.html"/g)||[]).length,3);
+    assert.ok(!landing.includes('cdn-cgi') && !landing.includes('showModal'));
     for(const file of ["/.env","/.git/config","/server/ai.js","/prompts/judge.md","/.local/attempts.jsonl","/%2e%2e/.env"])assert.equal((await fetch(base+file)).status,404,file);
     const r=await fetch(base+"/api/attempt",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({levelId:LEVEL.id,text:"搭石头过河"})});
     assert.equal((await r.json()).status,"unavailable");

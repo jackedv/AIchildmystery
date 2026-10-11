@@ -1,95 +1,36 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#284f3d">
-  <title>公主救王子 · 创造解谜故事书</title>
-  <link rel="stylesheet" href="styles.css">
-  <script type="module" src="src/app.js"></script>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#f8eee2"><meta name="description" content="在一本会回应你的故事书里，观察、想象，用一句话解开真实世界的谜题。">
+<title>小小公主 · 让世界回应你的想法</title>
+<link rel="stylesheet" href="landing.css"><link rel="stylesheet" href="startup.css">
 </head>
-<body>
-  <main id="game" aria-label="公主救王子故事书" inert aria-busy="true">
-    <div id="stage" class="stage">
-      <section id="cover-view" class="view cover-view" aria-labelledby="cover-title">
-        <div class="forest-backdrop"></div>
-        <div class="cover-composition">
-          <button id="book-cover" class="book-cover" aria-label="翻开公主救王子故事书">
-            <span class="book-spine"></span><span class="cover-border"></span>
-            <span class="cover-series">创造解谜故事书</span>
-            <span id="cover-title" class="cover-title">公主救王子</span>
-            <span class="cover-window"><img src="assets/level-1/scene-initial.png" alt="公主来到森林里的河边" draggable="false"></span>
-            <span class="cover-invitation">每一个好主意，都能翻开新的一页</span>
-            <span class="cover-flip">点击封面，翻开故事 <span aria-hidden="true">↗</span></span>
-          </button>
-          <div class="cover-copy">
-            <p class="small-label">一本等你来续写的故事</p>
-            <h1>王子在等她，<br>好主意在你这里。</h1>
-            <p>看一看身边的东西，<br>用一句话，帮公主继续冒险。</p>
-            <button id="start-reading" class="gold-button">开始阅读 <span aria-hidden="true">→</span></button>
-            <p class="reading-note">不止一种办法，试试你的想法。</p>
-          </div>
-        </div>
-      </section>
-      <section id="levels-view" class="view levels-view" aria-labelledby="levels-title" hidden>
-        <div class="forest-backdrop"></div>
-        <div class="open-book">
-          <div class="book-page story-page">
-            <p class="small-label">公主救王子</p>
-            <h1 id="levels-title">从这里出发</h1>
-            <p class="page-intro">翻开第一关，帮公主走向河的另一边。</p>
-            <button id="level-one" class="chapter-picture" aria-label="进入第一关：过河不拆桥">
-              <img src="assets/level-1/scene-initial.png" alt="第一关，公主、长桥板、绳子和两个木桶都在河边" draggable="false">
-              <span class="picture-tab">第一关</span>
-            </button>
-            <div class="chapter-caption"><div><h2>过河不拆桥</h2><p>帮公主安全到达河对岸。</p></div><span id="completion-mark" class="completion-mark" hidden>已完成 ✓</span></div>
-            <button id="enter-level" class="gold-button">开始这一关 <span aria-hidden="true">→</span></button>
-            <span class="page-number">1</span>
-          </div>
-          <div class="book-page coming-page">
-            <p class="small-label">第二关</p><h2 class="castle-chapter-title">悄悄进城</h2>
-            <p class="page-intro">让公主平安走进城堡庭院。</p>
-            <button id="level-two" class="chapter-picture" aria-label="进入第二关：悄悄进城" disabled><img src="assets/level-2/scene-initial.png" alt="第二关，城墙外有守卫、货车、梯子和侧门" draggable="false"><span class="picture-tab">第二关</span></button>
-            <div class="chapter-caption"><p id="next-state">完成第一关后解锁</p><span id="castle-completion" class="completion-mark" hidden>已完成 ✓</span></div>
-            <button id="enter-level-two" class="gold-button" disabled>完成第一关后解锁</button>
-            <p id="coming-note" class="coming-note" role="status" tabindex="-1">更多故事正在准备，后续关卡待开放。</p><span class="page-number">2</span>
-          </div>
-        </div>
-      </section>
-      <section id="intro-view" class="view intro-view" aria-label="第一关剧情介绍" hidden>
-        <button id="intro-continue" class="intro-continue"><span id="intro-text" class="intro-text"></span><span class="intro-bottom">点击继续</span></button>
-      </section>
-      <section id="scene-view" class="view scene-view" aria-labelledby="scene-title" hidden>
-        <img id="scene-image" class="scene-image" src="assets/level-1/scene-initial.png" alt="公主站在左岸，身旁有桥板、吊绳和两个空木桶，右岸有滑轮木架" draggable="false">
-        <div id="level-banner" class="level-banner" data-state="hidden" inert>
-          <h1 id="scene-title" class="title-board"><img id="scene-title-art" src="assets/ui/title_board.png" alt="过河不拆桥" draggable="false"><span id="scene-title-text" hidden></span></h1>
-          <button id="goal-button" class="goal-button" aria-expanded="false" aria-controls="rules-panel">想想办法，帮公主安全过河吧！</button>
-        </div>
-        <button id="rules-toggle" class="rules-toggle" aria-expanded="false" aria-controls="rules-panel" hidden>关卡约定</button>
-        <aside id="rules-panel" class="rules-panel" hidden><h2>这一关的约定</h2><ol id="rules-list"><li>只能使用图中已经出现的物体。</li><li>用一句话描述方案。</li></ol><p id="rules-goal">目标：让公主安全到达河对岸。</p></aside>
-        <div id="hotspots" aria-label="探索场景里的物体"></div>
-        <form id="idea-form" class="idea-form" autocomplete="off">
-          <label class="sr-only" for="idea-input">用一句话描述你的方案</label>
-          <input id="idea-input" type="text" maxlength="160" placeholder="请输入你的想法..." enterkeyhint="send" spellcheck="false" aria-describedby="input-feedback">
-          <button id="send-idea" type="submit" aria-label="提交想法" disabled></button>
-        </form>
-        <div id="input-feedback" class="input-feedback" role="status" hidden></div>
-        <div id="scene-wait" class="scene-wait" role="status" hidden><span class="scene-spinner" aria-hidden="true"></span><span id="scene-wait-label" class="sr-only"></span></div>
-        <section id="feedback" class="feedback" role="dialog" aria-modal="false" aria-labelledby="feedback-title" aria-describedby="feedback-text" aria-live="polite" aria-atomic="true" hidden>
-          <p id="feedback-kicker" class="feedback-kicker"></p><h2 id="feedback-title"></h2><p id="feedback-text"></p>
-          <div id="score-panel" class="score-panel" hidden><h3>这次方案的五个角度</h3><div class="score-layout"><div id="score-chart" class="score-chart"></div><ul id="score-reasons" class="score-reasons"></ul></div><p class="score-caption">分数只描述这一次的方案，每个角度都是 0–10 分。</p></div>
-          <p id="feedback-note" class="feedback-note" hidden></p><div id="feedback-actions" class="feedback-actions"></div>
-        </section>
-      </section>
-      <nav id="global-controls" aria-label="故事书操作">
-        <button id="back-button" class="art-button back-button" aria-label="返回故事书" hidden><img src="assets/ui/back_button.png" alt="" draggable="false"></button>
-        <button id="result-button" class="result-button" aria-label="查看这次的结果" title="查看结果" aria-haspopup="dialog" aria-expanded="false" aria-controls="feedback" hidden><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M24 5 42 18 35 40H13L6 18Z" fill="none" stroke="currentColor" stroke-width="3"/><path d="m24 13 12 10-6 11H17l-5-11Z" fill="currentColor" fill-opacity=".3" stroke="currentColor" stroke-width="2"/><path d="M24 5v8M42 18l-6 5M35 40l-5-6M13 40l4-6M6 18l6 5" fill="none" stroke="currentColor" stroke-width="2"/></svg></button>
-        <button id="music-button" class="art-button music-button" aria-label="关闭音乐" aria-pressed="true"><img src="assets/ui/music_button.png" alt="" draggable="false"><span class="music-off" aria-hidden="true"></span></button>
-      </nav>
-      <div id="orientation-note" class="orientation-note">把屏幕横过来，故事会看得更清楚。</div>
-    </div>
-  </main>
-  <section id="loading-screen" class="loading-screen" aria-label="正在加载故事" data-mode="boot">
+<body><div id="landing-site" inert aria-busy="true">
+<header class="nav"><a class="brand" href="#home" aria-label="小小公主首页"><span class="brand-icon">♔</span> 小小公主 <span class="brand-en">A LITTLE WONDER</span></a><nav aria-label="主导航"><a href="#how">冒险怎么玩</a><a href="#why">成长的魔法</a><a class="nav-cta" href="game.html">翻开故事书 <span>↗</span></a></nav></header>
+<main>
+<section class="hero" id="home" aria-labelledby="hero-title">
+<img class="hero-art" src="assets/landing/hero.png" alt="小小公主：粉色天空与奶油白云环绕着城堡、森林和蜿蜒的河流" fetchpriority="high">
+<div class="hero-content"><h1 id="hero-title" class="sr-only">小小公主</h1><p class="hero-line">用一句话，让故事世界回应你。</p><div class="hero-actions"><a class="button primary" href="game.html">开始冒险 <span>↗</span></a><a class="button secondary" href="#how">看看怎么玩 <span>↓</span></a></div><p class="hero-note">一点观察，一点想象，还有无限种可能。</p></div>
+<a class="scroll-note" href="#how">往下翻，发现故事里的魔法 <span>↓</span></a>
+</section>
+<section class="how paper" id="how" aria-labelledby="how-title"><div class="section-top"><span class="eyebrow"><i></i> 第一章 · 想法的冒险</span><span class="page-num">01 / 02</span></div>
+<div class="section-heading"><h2 id="how-title">没有选项，<br class="mobile-break">也没有唯一答案<span class="pink-dot">。</span></h2><p>你看到什么、想到什么，都可以成为解法。</p></div>
+<div class="steps">
+<article><span class="step-num">01</span><div><h3>看看四周</h3><p>探索场景里的物体，<br>发现藏在细节里的线索。</p></div></article>
+<article><span class="step-num">02</span><div><h3>说出你的办法</h3><p>不用拼公式，用一句话，<br>描述你想怎么做。</p></div></article>
+<article><span class="step-num">03</span><div><h3>世界发生变化</h3><p>AI 将你的想法化成画面，<br>让想象有迹可循。</p></div></article>
+<article><span class="step-num">04</span><div><h3>看看是否可行</h3><p>依据真实物理规律，<br>理解结果，再试一个办法。</p></div></article>
+</div>
+<div class="example"><div class="scene"><img src="assets/landing/river.png" alt="河流关卡：公主站在岸边，身旁有两个木桶、木板和绳索，对岸有滑轮"><span class="scene-label"><i></i> 故事书的一页 · 过河奇遇</span><button class="hotspot" aria-label="查看木桶的特性" aria-expanded="false">＋<span class="tooltip">木桶<br><small>空心、轻，密封后可以排开水。</small></span></button><span class="scene-caption">河挡住了去路，你会怎么做？</span></div><div class="example-copy"><span class="tiny-label">让一个想法，长出可能</span><h3>一条河，<br>不止一种过法。</h3><blockquote>“把两个木桶绑在木板下面，<br>做一只小筏子。”</blockquote><div class="physics"><span>✧</span><p>小小的想法，大大的发现。<small>木桶可以提供浮力。能不能安全载人，还要看密封、承重和连接是否稳固。</small></p></div><p class="demo-note">玩法示意 · 真实结果由关卡条件决定</p></div></div>
+</section>
+<section class="why paper" id="why" aria-labelledby="why-title"><div class="section-top"><span class="eyebrow"><i></i> 第二章 · 每一次尝试，都在成长</span><span class="page-num">02 / 02</span></div>
+<div class="philosophy"><div class="philosophy-copy"><span class="little-star">✧</span><h2 id="why-title">我们想训练的，<br>不是猜中答案。</h2><p class="why-accent">而是想象、观察和推理。</p><p class="why-text">有时候，一个办法还差一点点。<br>你会知道为什么，也会想到下一次怎么做。<br>那些认真想过的瞬间，都是成长的魔法。</p></div>
+<div class="abilities" aria-label="五个成长维度"><div class="orbit orbit-1"></div><div class="orbit orbit-2"></div><div class="ability-center"><span>✧</span><b>小小想法<br>慢慢发光</b></div><div class="ability a1"><span>⌁</span><b>物理推理</b><small>想明白为什么</small></div><div class="ability a2"><span>✧</span><b>想象力</b><small>让可能多一点</small></div><div class="ability a3"><span>◎</span><b>观察力</b><small>发现小小线索</small></div><div class="ability a4"><span>⚑</span><b>规划力</b><small>把想法连起来</small></div><div class="ability a5"><span>♡</span><b>安全意识</b><small>勇敢，也懂保护</small></div></div></div>
+<div class="closing"><div><span class="tiny-label">下一页，交给你的想象</span><h3>现在，轮到你想一个。</h3></div><a class="button primary" href="game.html">进入《小小公主》 <span>↗</span></a></div>
+<footer><a class="brand" href="#home">♔ 小小公主</a><span>一本会回应你的故事书。</span><span>让好奇心，带你走远一点。</span></footer>
+</section>
+</main></div>  <section id="loading-screen" class="loading-screen" aria-label="正在加载故事" data-mode="boot">
     <div id="loading-stage" class="stage loading-stage">
       <img class="loading-background" src="assets/loading/loading_background.png" alt="小小公主，云朵环绕的森林与城堡" draggable="false">
       <p id="loading-text" class="loading-text" aria-hidden="true">0% 加载中...</p>
@@ -101,8 +42,6 @@
       <span id="loading-announcement" class="sr-only" role="status">正在准备故事</span>
     </div>
   </section>
-  <div id="object-tooltip" class="object-tooltip" role="tooltip" hidden><strong id="tooltip-name"></strong><p id="tooltip-fact"></p></div>
-  <audio id="background-music" src="assets/audio/forest.mp3" loop preload="none"></audio>
-  <noscript>请在浏览器中开启 JavaScript，再双击「启动游戏」打开故事书。</noscript>
-</body>
-</html>
+
+<script type="module" src="src/landing.js"></script>
+</body></html>
