@@ -1,17 +1,19 @@
 import { LEVEL } from "./level.js";
 import { readProgress, recordAttempt, STORE_KEY } from "./progress.js";
 import { validScores, orderedScores } from "./scoring.js";
+import { createLoading, prepareArtwork } from "./loading.js";
 
 const $ = id => document.getElementById(id);
 const progress = readProgress(localStorage);
 const state = { view: "cover", intro: 0, busy: false, resolved: false, context: [], controller: null, request: 0, composing: false, gesture: false };
-let tooltipTimer, selected;
+let tooltipTimer, selected, bannerTimer, bannerVisit=0;
 const music = $("background-music"), input = $("idea-input"), send = $("send-idea");
+const loading=createLoading({screen:$("loading-screen"),game:$("game"),text:$("loading-text"),progress:$("loading-progress"),empty:$("loading-empty"),full:$("loading-full"),announcement:$("loading-announcement"),cancel:$("loading-cancel"),reload:$("loading-reload")});
 music.volume = .22;
 function save() { try { localStorage.setItem(STORE_KEY, JSON.stringify(progress)); } catch {} }
 function scaleStage() {
-  $("stage").style.transform = "translate(-50%, -50%) scale(" + Math.min(innerWidth / 1672, innerHeight / 941) + ")";
-  hideTooltip();
+  for(const id of ["stage","loading-stage"]) $(id).style.transform = "translate(-50%, -50%) scale(" + Math.min(innerWidth / 1672, innerHeight / 941) + ")";
+  if(selected) showTooltip(selected,LEVEL.objects.find(object=>object.id===selected.dataset.object));
 }
 addEventListener("resize", scaleStage); scaleStage();
 function musicState() {
@@ -21,9 +23,27 @@ function musicState() {
   if (progress.sound && state.gesture && !document.hidden) music.play().catch(() => {});
   else music.pause();
 }
-function cancelAttempt() { state.request++; state.controller?.abort(); state.controller = null; state.busy = false; input.disabled = false; }
+function cancelAttempt() { state.request++; state.controller?.abort(); state.controller = null; state.busy = false; input.disabled = false; if(loading.mode==="pending") loading.hide(); }
+function hideLevelBanner() {
+  bannerVisit++;
+  clearTimeout(bannerTimer); $("level-banner").dataset.state="hidden"; $("level-banner").inert=true; $("rules-toggle").hidden=true;
+}
+function showLevelBanner() {
+  hideLevelBanner();
+  const visit=bannerVisit;
+  requestAnimationFrame(()=>{
+    if(state.view!=="scene" || visit!==bannerVisit) return;
+    $("level-banner").inert=false; $("level-banner").dataset.state="visible";
+    const slide=matchMedia("(prefers-reduced-motion: reduce)").matches?0:650;
+    bannerTimer=setTimeout(()=>{
+      if(state.view!=="scene" || visit!==bannerVisit) return;
+      if($("level-banner").contains(document.activeElement)) input.focus({preventScroll:true});
+      $("level-banner").dataset.state="hidden"; $("level-banner").inert=true; $("rules-toggle").hidden=false;
+    },slide+2000);
+  });
+}
 function view(name) {
-  cancelAttempt(); hideTooltip(); closeRules();
+  cancelAttempt(); hideTooltip(); closeRules(); hideLevelBanner();
   state.view = name;
   document.body.dataset.view = name;
   for (const section of document.querySelectorAll(".view")) section.hidden = section.id !== name + "-view";
@@ -36,6 +56,7 @@ function view(name) {
     $("next-state").textContent = progress.completed ? "已解锁 · 待开放" : "完成第一关后解锁 · 待开放";
   }
   musicState(); updateInput();
+  if(name==="scene") showLevelBanner();
 }
 function openBook() { state.gesture = true; view("levels"); $("enter-level").focus({preventScroll:true}); }
 $("book-cover").addEventListener("click", openBook); $("start-reading").addEventListener("click", openBook);
@@ -56,13 +77,16 @@ $("intro-continue").addEventListener("click", () => {
 });
 $("intro-continue").addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); $("intro-continue").click(); } });
 $("back-button").addEventListener("click", () => view(state.view === "levels" ? "cover" : "levels"));
+$("loading-cancel").addEventListener("click",()=>{view("levels");$("enter-level").focus({preventScroll:true});});
+$("loading-reload").addEventListener("click",()=>location.reload());
 $("music-button").addEventListener("click", () => { state.gesture = true; progress.sound = !progress.sound; save(); musicState(); });
 document.addEventListener("visibilitychange", musicState);
-function closeRules() { $("rules-panel").hidden = true; $("goal-button").setAttribute("aria-expanded","false"); }
-$("goal-button").addEventListener("click", () => {
+function closeRules() { $("rules-panel").hidden = true; for(const id of ["goal-button","rules-toggle"]) $(id).setAttribute("aria-expanded","false"); }
+function toggleRules() {
   hideTooltip(); $("rules-panel").hidden = !$("rules-panel").hidden;
-  $("goal-button").setAttribute("aria-expanded", String(!$("rules-panel").hidden));
-});
+  for(const id of ["goal-button","rules-toggle"]) $(id).setAttribute("aria-expanded", String(!$("rules-panel").hidden));
+}
+$("goal-button").addEventListener("click",toggleRules); $("rules-toggle").addEventListener("click",toggleRules);
 function hideTooltip() {
   clearTimeout(tooltipTimer); $("object-tooltip").hidden = true;
   if (selected) { selected.dataset.selected = "false"; selected.removeAttribute("aria-describedby"); }
@@ -87,12 +111,12 @@ for (const object of LEVEL.objects) for (const area of object.areas) {
   const [x,y,w,h] = area;
   Object.assign(button.style, { left:x+"px", top:y+"px", width:w+"px", height:h+"px" });
   button.addEventListener("pointerenter", () => { hideTooltip(); tooltipTimer = setTimeout(() => showTooltip(button,object),300); });
-  button.addEventListener("pointerleave", hideTooltip);
+  button.addEventListener("pointerleave", () => { if(document.activeElement!==button) hideTooltip(); });
   button.addEventListener("focus", () => showTooltip(button,object)); button.addEventListener("blur", hideTooltip);
   button.addEventListener("click", () => showTooltip(button,object)); $("hotspots").append(button);
 }
 document.addEventListener("keydown", e => { if(e.key==="Escape") { hideTooltip(); closeRules(); } });
-document.addEventListener("pointerdown", e => { if (!e.target.closest(".hotspot")) hideTooltip(); if(!e.target.closest("#rules-panel,#goal-button")) closeRules(); });
+document.addEventListener("pointerdown", e => { if (!e.target.closest(".hotspot")) hideTooltip(); if(!e.target.closest("#rules-panel,#goal-button,#rules-toggle")) closeRules(); });
 function updateInput() { send.disabled = state.busy || state.resolved || state.composing || !input.value.trim(); input.disabled = state.busy || state.resolved; }
 input.addEventListener("input", () => { $("input-feedback").hidden = true; updateInput(); });
 input.addEventListener("compositionstart", () => { state.composing = true; updateInput(); });
@@ -102,7 +126,7 @@ function action(label, callback, secondary=false) {
   const b = document.createElement("button"); b.type = "button"; b.textContent = label; if(secondary) b.className = "secondary";
   b.addEventListener("click", callback); $("feedback-actions").append(b);
 }
-function retry() { resetScene(); input.focus({preventScroll:true}); }
+function retry() { resetScene(); showLevelBanner(); input.focus({preventScroll:true}); }
 function showScores(scores) {
   const ordered = orderedScores(scores), ns = "http://www.w3.org/2000/svg";
   const svg = document.createElementNS(ns,"svg"); svg.setAttribute("viewBox","0 0 360 280"); svg.setAttribute("role","img");
@@ -139,10 +163,11 @@ function feedback(result) {
     $("feedback-note").hidden=false; $("feedback-note").textContent="下一关已解锁，故事还在准备中。";
     action("再试一种方法",retry); action("返回关卡本",()=>view("levels"),true);
   } else if(result.status==="failure") {
-    action("重新描述",retry); action("查看物体信息",()=>{ retry(); document.querySelector('.hotspot[data-object="bridge"]').focus(); },true);
+    action("重新描述",retry); action("查看物体信息",retry,true);
   } else if(result.status==="clarify") {
     action("重新描述方案",retry,true); input.focus({preventScroll:true}); input.select();
   } else { action("收起提示",()=>{box.hidden=true;input.focus({preventScroll:true});},true); input.focus({preventScroll:true}); }
+  if(["success","failure"].includes(result.status)) $("feedback-actions").querySelector("button")?.focus({preventScroll:true});
 }
 function validateResponse(result) {
   if(!result || !["success","failure","clarify","unavailable","system_error"].includes(result.status)) throw new Error("invalid response");
@@ -158,6 +183,7 @@ $("idea-form").addEventListener("submit", async e => {
   if(state.context.length>=5) { feedback({status:"system_error",message:"我们已经问了五次。请重新描述一个完整的方案，再试一次。"}); action("重新描述方案",retry); return; }
   state.busy=true; hideTooltip(); closeRules(); $("feedback").hidden=true;
   const request=++state.request, controller=new AbortController(); state.controller=controller;
+  const loadingToken=loading.show("pending","正在理解你的想法……");
   input.value="正在理解你的想法……"; updateInput();
   const timeout=setTimeout(()=>controller.abort("timeout"),180000);
   try {
@@ -169,6 +195,7 @@ $("idea-form").addEventListener("submit", async e => {
     if(result.status==="clarify") state.context.push({text,question:result.question});
     else if(["success","failure"].includes(result.status)) {
       // Decode before committing progress. A broken result image is a system error.
+      loading.label(loadingToken,"正在准备结果画面……");
       const img=new Image(); img.src=result.image; await img.decode();
       if(request!==state.request || state.view!=="scene") return;
       $("scene-image").src=result.image; $("scene-image").alt=result.change || "你的想法产生的结果画面";
@@ -177,10 +204,13 @@ $("idea-form").addEventListener("submit", async e => {
       state.context=[]; recordAttempt(progress,text,result); save();
     }
     if(!["success","failure"].includes(result.status)) { recordAttempt(progress,text,result); save(); }
+    await loading.finish(loadingToken);
+    if(request!==state.request || state.view!=="scene") return;
     state.busy=false;updateInput();feedback(result);
   } catch(error) {
     if(request!==state.request || state.view!=="scene") return;
     input.value=text; state.busy=false; updateInput();
+    loading.hide();
     const result={status:"system_error",message:controller.signal.aborted ? "思考时间有点长，请稍后重试。" : "暂时没能连接思考服务。你的想法还在，请稍后重试。"};
     recordAttempt(progress,text,result);save();feedback(result);
   } finally {
@@ -189,3 +219,11 @@ $("idea-form").addEventListener("submit", async e => {
   }
 });
 view("cover"); save();
+async function boot() {
+  const token=loading.show("boot","正在准备故事");
+  try {
+    await prepareArtwork([LEVEL.scene,"assets/level-1/forest.png","assets/ui/title_board.png","assets/ui/back_button.png","assets/ui/music_button.png","assets/ui/input-clean.png","assets/loading/loading_background.png","assets/loading/progress_bar_empty.png","assets/loading/progress_bar_full.png"]);
+    if(await loading.timed(token,2000)) {if(await loading.finish(token)) $("start-reading").focus({preventScroll:true});}
+  } catch {loading.fail(token,"故事页面还没准备好，请重新加载。");}
+}
+boot();

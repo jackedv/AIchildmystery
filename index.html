@@ -9,7 +9,7 @@
   <script type="module" src="src/app.js"></script>
 </head>
 <body>
-  <main id="game" aria-label="公主救王子故事书">
+  <main id="game" aria-label="公主救王子故事书" inert aria-busy="true">
     <div id="stage" class="stage">
       <section id="cover-view" class="view cover-view" aria-labelledby="cover-title">
         <div class="forest-backdrop"></div>
@@ -63,8 +63,11 @@
       </section>
       <section id="scene-view" class="view scene-view" aria-labelledby="scene-title" hidden>
         <img id="scene-image" class="scene-image" src="assets/level-1/scene.jpg" alt="公主站在左岸，身旁有桥板、吊绳和两个空木桶，右岸有滑轮木架" draggable="false">
-        <h1 id="scene-title" class="title-board"><img src="assets/ui/title_board.png" alt="过河不拆桥" draggable="false"></h1>
-        <button id="goal-button" class="goal-button" aria-expanded="false" aria-controls="rules-panel">想想办法，帮公主安全过河吧！</button>
+        <div id="level-banner" class="level-banner" data-state="hidden" inert>
+          <h1 id="scene-title" class="title-board"><img src="assets/ui/title_board.png" alt="过河不拆桥" draggable="false"></h1>
+          <button id="goal-button" class="goal-button" aria-expanded="false" aria-controls="rules-panel">想想办法，帮公主安全过河吧！</button>
+        </div>
+        <button id="rules-toggle" class="rules-toggle" aria-expanded="false" aria-controls="rules-panel" hidden>关卡约定</button>
         <aside id="rules-panel" class="rules-panel" hidden><h2>这一关的约定</h2><ol><li>只能使用图中已经出现的物体。</li><li>用一句话描述方案。</li></ol><p>目标：让公主安全到达河对岸。</p></aside>
         <div id="hotspots" aria-label="探索场景里的物体"></div>
         <form id="idea-form" class="idea-form" autocomplete="off">
@@ -86,6 +89,19 @@
       <div id="orientation-note" class="orientation-note">把屏幕横过来，故事会看得更清楚。</div>
     </div>
   </main>
+  <section id="loading-screen" class="loading-screen" aria-label="正在加载故事" data-mode="boot">
+    <div id="loading-stage" class="stage loading-stage">
+      <img class="loading-background" src="assets/loading/loading_background.png" alt="小小公主，云朵环绕的森林与城堡" draggable="false">
+      <p id="loading-text" class="loading-text" aria-hidden="true">0% 加载中...</p>
+      <div id="loading-progress" class="loading-progress" role="progressbar" aria-label="故事准备进度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+        <img id="loading-empty" src="assets/loading/progress_bar_empty.png" alt="" draggable="false">
+        <img id="loading-full" src="assets/loading/progress_bar_full.png" alt="" draggable="false">
+      </div>
+      <button id="loading-cancel" class="loading-action" hidden>返回关卡本</button>
+      <button id="loading-reload" class="loading-action" hidden>重新加载</button>
+      <span id="loading-announcement" class="sr-only" role="status">正在准备故事</span>
+    </div>
+  </section>
   <div id="object-tooltip" class="object-tooltip" role="tooltip" hidden><strong id="tooltip-name"></strong><p id="tooltip-fact"></p></div>
   <audio id="background-music" src="assets/audio/forest.mp3" loop preload="none"></audio>
   <noscript>请在浏览器中开启 JavaScript，再双击「启动游戏」打开故事书。</noscript>

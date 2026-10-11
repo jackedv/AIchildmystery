@@ -11,7 +11,7 @@ const png="iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCA
 const judge=(status="success")=>({status,normalized:"用绳子荡过去",understanding:"你想抓住吊绳过河。",objectIds:["swing_rope","princess"],actions:["抓住","摆荡"],confidence:.9,reason:"绳子固定在树枝上，摆荡能到另一边。",question:status==="clarify"?"你想使用哪个物体？":"",changes:"公主抓住吊绳摆到右岸。",
   checks:status==="success"?{clarity:"pass",constraints:"pass",physics:"pass",goal:"pass"}:status==="failure"?{clarity:"pass",constraints:"pass",physics:"fail",goal:"not_evaluated"}:{clarity:"unclear",constraints:"not_evaluated",physics:"not_evaluated",goal:"not_evaluated"},
   scores:status==="success"?SCORE_DIMENSIONS.map(d=>({dimension:d.id,score:7,reason:"这次方案体现了具体的思考。"})):[]});
-const narration={consistent:true,understanding:"你想用吊绳过河。",change:"公主到达了另一边。",reason:"绳子固定住，摆荡时托住了她。"};
+const narration={consistent:true,princessLocation:"right_bank",identityPreserved:true,objectScalePreserved:true,backgroundPreserved:true,causalStructureMatches:true,understanding:"你想用吊绳过河。",change:"公主到达了另一边。",reason:"绳子固定住，摆荡时托住了她。"};
 function mockTransport(sequence,calls) {
   return async(url,options)=>{
     calls.push({url,body:JSON.parse(options.body),headers:options.headers});
@@ -44,7 +44,7 @@ test("借用本地物体素材、合并重复滑轮参考，最多10张图",asyn
   assert.ok(calls[1].body.prompt.includes("barrels_pair.png"));assert.ok(calls[1].body.prompt.includes("bridge_plank_tall.png"));
   assert.ok(calls[1].body.prompt.includes("rope_tree.png"));
 });
-test("失败不是系统异常",async()=>{const r=await evaluator([judge("failure"),png,narration])(input("把叶子铺满河流"),controller().signal);assert.equal(r.status,"failure");});
+test("失败不是系统异常",async()=>{const r=await evaluator([judge("failure"),png,{...narration,princessLocation:"left_bank"}])(input("把叶子铺满河流"),controller().signal);assert.equal(r.status,"failure");});
 test("追问只调用文字、不生成图片",async()=>{
   const calls=[];const r=await evaluator([judge("clarify")],calls)(input("把它弄过去"),controller().signal);
   assert.equal(r.status,"clarify");assert.equal(calls.length,1);
@@ -58,7 +58,18 @@ test("拒绝无效对象ID与格式错误",async()=>{
   await assert.rejects(evaluator(["not-json"])(input("用绳子荡过去"),controller().signal),e=>e.kind==="format");
 });
 test("明显矛盾的图不产生成功状态",async()=>{
-  await assert.rejects(evaluator([judge(),png,{...narration,consistent:false}])(input("用绳子荡过去"),controller().signal),e=>e.kind==="image");
+  await assert.rejects(evaluator([judge(),png,{...narration,consistent:false},png,{...narration,consistent:false}])(input("用绳子荡过去"),controller().signal),e=>e.kind==="image");
+});
+test("方案成功而公主还在途中，重生成一次后核对才允许通关",async()=>{
+  const calls=[];const r=await evaluator([judge(),png,{...narration,princessLocation:"river_or_crossing"},png,narration],calls)(input("用绳子荡过去"),controller().signal);
+  assert.equal(r.status,"success");assert.equal(calls.length,5);
+  await assert.rejects(evaluator([judge(),png,{...narration,princessLocation:"river_or_crossing"},png,{...narration,princessLocation:"river_or_crossing"}])(input("用绳子荡过去"),controller().signal),e=>e.kind==="image");
+});
+test("核图自称一致但物体尺寸不符，必须纠正或返回图像异常",async()=>{
+  const calls=[],wrong={...narration,objectScalePreserved:false,change:"长板被缩成了短桨。"};
+  const r=await evaluator([judge(),png,wrong,png,narration],calls)(input("用绳子荡过去"),controller().signal);
+  assert.equal(r.status,"success");assert.equal(calls.length,5);assert.ok(calls[3].body.prompt.includes("长板被缩成了短桨"));
+  await assert.rejects(evaluator([judge(),png,wrong,png,wrong])(input("用绳子荡过去"),controller().signal),e=>e.kind==="image");
 });
 test("401、429、损坏图片分别映射为系统错误",async()=>{
   for(const [sequence,kind] of [[[ {http:401} ],"auth"],[[{http:429}],"quota"],[[judge(),"bm90LXBpY3R1cmU="],"image"]]){

@@ -19,7 +19,9 @@ const judgmentSchema = schema({
   checks:schema(Object.fromEntries(["clarity","constraints","physics","goal"].map(k=>[k,{type:"string",enum:["pass","fail","unclear","not_evaluated"]}]))),
   scores:{type:"array",items:schema({dimension:{type:"string",enum:SCORE_DIMENSIONS.map(d=>d.id)},score:{type:"integer",minimum:0,maximum:10},reason:{type:"string",maxLength:35}})}
 });
-const narrationSchema = schema({ consistent:{type:"boolean"}, understanding:stringField, change:stringField, reason:stringField });
+const narrationSchema = schema({ consistent:{type:"boolean"}, princessLocation:{type:"string",enum:["left_bank","right_bank","river_or_crossing","unclear"]},
+  identityPreserved:{type:"boolean"},objectScalePreserved:{type:"boolean"},backgroundPreserved:{type:"boolean"},causalStructureMatches:{type:"boolean"},
+  understanding:stringField, change:stringField, reason:stringField });
 export async function loadConfig(root) {
   let text="";
   try { text=await readFile(path.join(root,".env"),"utf8"); } catch(error) { if(error.code!=="ENOENT") throw error; }
@@ -104,10 +106,14 @@ export function createEvaluator({root,config,transport=fetch}) {
       seen.add(file);images.push(await imageData(file));
       referenceRoles.push("图"+images.length+"："+LEVEL.objects.find(o=>o.id===id).name+"的本地外观参考（"+path.basename(file)+"），不是新增物体，不决定摆放位置。");
     }
+    const finalFrame={outcome:judgment.status,completedPlan:judgment.normalized,involvedObjects:judgment.objectIds,finalScene:judgment.changes,
+      princessFinalPosition:judgment.status==="success"?"已经上岸，双脚站在右岸草地":"未完成过河，停留在安全位置"};
+    let correction="";
+    for(let renderAttempt=0;renderAttempt<2;renderAttempt++) {
     let edited;
     try {
       edited=await remote("/images/generations",{model:config.imageModel,
-        prompt:editPrompt+"\n参考图片对应关系：\n"+referenceRoles.join("\n")+"\n已确认的场景事实："+JSON.stringify(facts)+"\n已确认的方案和结果："+JSON.stringify(judgment),
+        prompt:editPrompt+"\n参考图片对应关系：\n"+referenceRoles.join("\n")+"\n已确认的场景事实："+JSON.stringify(facts)+"\n只绘制这个最终定格："+JSON.stringify(finalFrame)+correction,
         image:images.length===1?images[0]:images,size:"1672x941",output_format:"png",response_format:"b64_json",watermark:true},signal);
     } catch(error) { if(error.kind==="timeout" || error.kind==="auth" || error.kind==="quota") throw error; throw new AiError("image"); }
     const encoded=edited?.data?.[0]?.b64_json;
@@ -118,10 +124,21 @@ export function createEvaluator({root,config,transport=fetch}) {
     const narration=await structured(await prompt("explain"),
       [{type:"text",text:JSON.stringify({facts,judgment,referenceRoles})},...images.map(url=>({type:"image_url",image_url:{url}})),{type:"image_url",image_url:{url:image}}],
       narrationSchema,signal);
-    if(narration?.consistent!==true) throw new AiError("image");
     if(["understanding","change","reason"].some(k=>typeof narration[k]!=="string" || !narration[k].trim() || narration[k].length>300)) throw new AiError("format");
+    const validLocation=["left_bank","right_bank","river_or_crossing","unclear"].includes(narration.princessLocation);
+    if(!validLocation || ["consistent","identityPreserved","objectScalePreserved","backgroundPreserved","causalStructureMatches"].some(k=>typeof narration[k]!=="boolean")) throw new AiError("format");
+    const matchesGoal=judgment.status==="success"?narration.princessLocation==="right_bank":narration.princessLocation!=="right_bank";
+    if(!narration.consistent || !narration.identityPreserved || !narration.objectScalePreserved || !narration.backgroundPreserved || !narration.causalStructureMatches || !matchesGoal) {
+      if(renderAttempt===0) {
+        correction="\n上一轮图像没有通过核对，观察到的不符点："+JSON.stringify({change:narration.change,reason:narration.reason,princessLocation:narration.princessLocation})+
+          "。请重新从原图编辑，纠正这些不符点，保持确认的方案。成功时必须是公主已经上右岸的最终定格。";
+        continue;
+      }
+      throw new AiError("image");
+    }
     return {status:judgment.status,image,understanding:narration.understanding,change:narration.change,reason:narration.reason,
       ...(judgment.status==="success"?{scores:orderedScores(judgment.scores)}:{})};
+    }
   };
 }
 export function errorResult(error) {
