@@ -3,9 +3,12 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "AI 儿童创造解谜：公主救王子第一关本地 Web 原型",
+  "description": "AI 儿童创造解谜：公主救王子两关本地 Web 游戏",
   "scripts": {
     "start": "node server/start.js",
     "check": "node --test tests/*.test.js"
+  },
+  "dependencies": {
+    "sharp": "0.35.4"
   }
 }

@@ -1,5 +1,5 @@
-import { LEVEL } from "./level.js";
-import { readProgress, recordAttempt, STORE_KEY } from "./progress.js";
+import { LEVELS, CHARACTERS } from "./level.js";
+import { readProgress, recordAttempt, STORE_KEY, hasCompleted } from "./progress.js";
 import { validScores, orderedScores } from "./scoring.js";
 import { createLoading, prepareArtwork } from "./loading.js";
 import { createResultPanel } from "./result-panel.js";
@@ -8,6 +8,7 @@ const $ = id => document.getElementById(id);
 const progress = readProgress(localStorage);
 const state = { view: "cover", intro: 0, busy: false, resolved: false, context: [], controller: null, request: 0, composing: false, gesture: false };
 let tooltipTimer, selected, bannerTimer, bannerVisit=0;
+let LEVEL=LEVELS[0];
 const music = $("background-music"), input = $("idea-input"), send = $("send-idea");
 const loading=createLoading({screen:$("loading-screen"),game:$("game"),text:$("loading-text"),progress:$("loading-progress"),empty:$("loading-empty"),full:$("loading-full"),announcement:$("loading-announcement"),reload:$("loading-reload")});
 const resultPanel=createResultPanel({panel:$("feedback"),button:$("result-button")});
@@ -57,10 +58,13 @@ function view(name) {
   $("back-button").hidden = name === "cover";
   $("back-button").setAttribute("aria-label", name === "levels" ? "返回故事书" : "返回关卡本");
   if (name === "levels") {
-    $("completion-mark").hidden = !progress.completed;
-    $("enter-level").textContent = progress.completed ? "再玩一次 →" : "开始这一关 →";
-    $("next-state").textContent = progress.completed ? "已解锁 · 待开放" : "完成第一关后解锁 · 待开放";
-    $("coming-note").textContent="现在可以体验第一关。已经完成，也能回来试一种新办法。";
+    const first=hasCompleted(progress,LEVELS[0].id),second=hasCompleted(progress,LEVELS[1].id);
+    $("completion-mark").hidden = !first; $("castle-completion").hidden=!second;
+    $("enter-level").textContent = first ? "再玩一次 →" : "开始这一关 →";
+    $("next-state").textContent = first ? "帮公主进入城堡庭院。" : "完成第一关后解锁";
+    $("enter-level-two").textContent=first ? (second?"再玩一次 →":"开始这一关 →") : "完成第一关后解锁";
+    $("level-two").disabled=!first; $("enter-level-two").disabled=!first;
+    $("coming-note").textContent="更多故事正在准备，后续关卡待开放。";
   }
   musicState(); updateInput();
   if(name==="scene") showLevelBanner();
@@ -70,13 +74,26 @@ $("book-cover").addEventListener("click", openBook); $("start-reading").addEvent
 function resetScene() {
   cancelAttempt(); resultPanel.clear(); state.context = []; input.value = ""; $("scene-image").src = LEVEL.scene;
   state.resolved = false;
-  $("scene-image").alt = "公主在左岸，观察场景中的物体，想办法安全过河";
+  $("scene-image").alt = LEVEL.initialAlt;
   $("feedback").hidden = true; $("input-feedback").hidden = true;
   for (const b of document.querySelectorAll(".hotspot")) b.disabled = false;
   updateInput();
 }
-function enterLevel() { resetScene(); state.intro = 0; $("intro-text").textContent = LEVEL.intro[0]; view("intro"); $("intro-continue").focus({preventScroll:true}); }
-$("level-one").addEventListener("click", enterLevel); $("enter-level").addEventListener("click", enterLevel);
+function enterLevel(level=LEVELS[0]) {
+  if(level===LEVELS[1] && !hasCompleted(progress,LEVELS[0].id)) return;
+  LEVEL=level; hideTooltip(); renderHotspots();
+  const first=LEVEL===LEVELS[0];
+  $("scene-title-art").src=first?"assets/ui/title_board.png":"assets/ui/title-board-empty.png";
+  $("scene-title-art").alt=first?LEVEL.title:"";
+  $("scene-title-text").hidden=first; $("scene-title-text").textContent=LEVEL.title;
+  $("goal-button").textContent=LEVEL.goalText;
+  $("rules-list").replaceChildren(...LEVEL.constraints.map(text=>{const li=document.createElement("li");li.textContent=text;return li;}));
+  $("rules-goal").textContent="目标："+LEVEL.goal+"。";
+  $("intro-view").setAttribute("aria-label",LEVEL.title+"剧情介绍");
+  resetScene(); state.intro = 0; $("intro-text").textContent = LEVEL.intro[0]; view("intro"); $("intro-continue").focus({preventScroll:true});
+}
+$("level-one").addEventListener("click",()=>enterLevel(LEVELS[0])); $("enter-level").addEventListener("click",()=>enterLevel(LEVELS[0]));
+$("level-two").addEventListener("click",()=>enterLevel(LEVELS[1])); $("enter-level-two").addEventListener("click",()=>enterLevel(LEVELS[1]));
 $("intro-continue").addEventListener("click", () => {
   state.intro++;
   if (state.intro < LEVEL.intro.length) $("intro-text").textContent = LEVEL.intro[state.intro];
@@ -111,6 +128,8 @@ function showTooltip(button, object) {
   tip.style.left = Math.max(12, Math.min(innerWidth - w - 12, rect.left + rect.width / 2 - w / 2)) + "px";
   tip.style.top = Math.max(12, Math.min(innerHeight - h - 12, top)) + "px";
 }
+function renderHotspots() {
+$("hotspots").replaceChildren();
 for (const object of LEVEL.objects) for (const area of object.areas) {
   const button = document.createElement("button"); button.type = "button"; button.className = "hotspot";
   button.setAttribute("aria-label", "查看" + object.name); button.dataset.object = object.id;
@@ -121,6 +140,8 @@ for (const object of LEVEL.objects) for (const area of object.areas) {
   button.addEventListener("focus", () => showTooltip(button,object)); button.addEventListener("blur", hideTooltip);
   button.addEventListener("click", () => showTooltip(button,object)); $("hotspots").append(button);
 }
+}
+renderHotspots();
 document.addEventListener("keydown", e => { if(e.key==="Escape") { hideTooltip(); closeRules(); } });
 document.addEventListener("pointerdown", e => { if (!e.target.closest(".hotspot")) hideTooltip(); if(!e.target.closest("#rules-panel,#goal-button,#rules-toggle")) closeRules(); });
 function updateInput() { send.disabled = state.busy || state.resolved || state.composing || !input.value.trim(); input.disabled = state.busy || state.resolved; }
@@ -134,7 +155,8 @@ function action(label, callback, secondary=false) {
 }
 function retry() { resetScene(); showLevelBanner(); input.focus({preventScroll:true}); }
 function nextLevel() {
-  view("levels"); $("coming-note").textContent="第二关待开放，故事还在准备中。你也可以再玩第一关，试一种新办法。";
+  if(LEVEL===LEVELS[0]) {enterLevel(LEVELS[1]);return;}
+  view("levels"); $("coming-note").textContent="这两页冒险已经完成，下一关待开放。也可以回来试一种新办法。";
   $("coming-note").focus({preventScroll:true});
 }
 function showScores(scores) {
@@ -171,7 +193,7 @@ function feedback(result) {
   $("feedback-text").textContent=result.status==="clarify" ? result.question : [result.understanding,result.change,result.reason].filter(Boolean).join(" ") || result.message;
   if(result.status==="success") {
     showScores(result.scores);
-    $("feedback-note").hidden=false; $("feedback-note").textContent="下一关已解锁，故事还在准备中。";
+    $("feedback-note").hidden=false; $("feedback-note").textContent=LEVEL===LEVELS[0]?"第二关已解锁，可以继续冒险。":"这两页冒险已经完成，下一关待开放。";
     action("再试一种方法",retry); action("进入下一关",nextLevel); action("返回关卡本",()=>view("levels"),true);
   } else if(result.status==="failure") {
     action("重新描述",retry); action("查看物体信息",retry,true);
@@ -213,9 +235,9 @@ $("idea-form").addEventListener("submit", async e => {
       $("scene-image").src=result.image; $("scene-image").alt=result.change || "你的想法产生的结果画面";
       state.resolved=true;
       for(const b of document.querySelectorAll(".hotspot")) b.disabled=true;
-      state.context=[]; recordAttempt(progress,text,result); save();
+      state.context=[]; recordAttempt(progress,text,result,LEVEL.id); save();
     }
-    if(!["success","failure"].includes(result.status)) { recordAttempt(progress,text,result); save(); }
+    if(!["success","failure"].includes(result.status)) { recordAttempt(progress,text,result,LEVEL.id); save(); }
     sceneWaiting(false);
     state.busy=false;updateInput();feedback(result);
   } catch(error) {
@@ -223,7 +245,7 @@ $("idea-form").addEventListener("submit", async e => {
     input.value=text; state.busy=false; updateInput();
     sceneWaiting(false);
     const result={status:"system_error",message:controller.signal.aborted ? "思考时间有点长，请稍后重试。" : "暂时没能连接思考服务。你的想法还在，请稍后重试。"};
-    recordAttempt(progress,text,result);save();feedback(result);
+    recordAttempt(progress,text,result,LEVEL.id);save();feedback(result);
   } finally {
     clearTimeout(timeout);
     if(request===state.request) { state.busy=false; state.controller=null; input.value=text;updateInput(); }
@@ -233,7 +255,7 @@ view("cover"); save();
 async function boot() {
   const token=loading.show("boot","正在准备故事");
   try {
-    await prepareArtwork([LEVEL.scene,"assets/level-1/forest.png","assets/ui/title_board.png","assets/ui/back_button.png","assets/ui/music_button.png","assets/ui/input-clean.png","assets/loading/loading_background.png","assets/loading/progress_bar_empty.png","assets/loading/progress_bar_full.png"]);
+    await prepareArtwork([...LEVELS.map(level=>level.scene),...Object.values(CHARACTERS),"assets/level-1/forest.png","assets/ui/title_board.png","assets/ui/title-board-empty.png","assets/ui/back_button.png","assets/ui/music_button.png","assets/ui/input-clean.png","assets/loading/loading_background.png","assets/loading/progress_bar_empty.png","assets/loading/progress_bar_full.png"]);
     if(await loading.timed(token,2000)) {if(await loading.finish(token)) $("start-reading").focus({preventScroll:true});}
   } catch {loading.fail(token,"故事页面还没准备好，请重新加载。");}
 }

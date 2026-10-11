@@ -2,7 +2,7 @@
 $ErrorActionPreference = 'Stop'
 $taskRoot = Split-Path -Parent $PSScriptRoot
 $taskNode = Join-Path $taskRoot '.tools\node.exe'
-if (-not (Test-Path -LiteralPath $taskNode)) { & (Join-Path $PSScriptRoot 'setup-local.ps1') }
+if (-not (Test-Path -LiteralPath $taskNode) -or -not (Test-Path -LiteralPath (Join-Path $taskRoot 'node_modules\sharp'))) { & (Join-Path $PSScriptRoot 'setup-local.ps1') }
 if (-not (Test-Path -LiteralPath (Join-Path $taskRoot '.env'))) { Copy-Item -LiteralPath (Join-Path $taskRoot '.env.example') -Destination (Join-Path $taskRoot '.env') }
 $taskLocal = Join-Path $taskRoot '.local'
 New-Item -ItemType Directory -Force -Path $taskLocal | Out-Null

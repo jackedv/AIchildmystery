@@ -27,7 +27,7 @@ export async function createGameServer({root,config,evaluate,journal=true,attemp
         for await(const chunk of req) { size+=chunk.length; if(size>12000) throw new AiError("invalid");chunks.push(chunk); }
         try { body=JSON.parse(Buffer.concat(chunks).toString("utf8")); } catch { throw new AiError("invalid"); }
         const valid=validateAttempt(body);
-        if(journal) { await mkdir(path.join(root,".local"),{recursive:true}); await appendFile(path.join(root,".local","attempts.jsonl"),JSON.stringify({at:new Date().toISOString(),text:valid.text,clarifications:valid.context.length})+"\n","utf8"); }
+        if(journal) { await mkdir(path.join(root,".local"),{recursive:true}); await appendFile(path.join(root,".local","attempts.jsonl"),JSON.stringify({at:new Date().toISOString(),levelId:valid.level.id,text:valid.text,clarifications:valid.context.length})+"\n","utf8"); }
         const result=await evaluate(body,controller.signal);
         if(!res.destroyed) json(res,result);
       } catch(error) { if(!res.destroyed) json(res,errorResult(error)); }
