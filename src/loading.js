@@ -1,5 +1,5 @@
-// One loading surface for startup, AI requests and result-image preparation.
-export function createLoading({screen,game,text,progress,empty,full,announcement,cancel,reload}) {
+// Full-page loading is reserved for startup and artwork preparation.
+export function createLoading({screen,game,text,progress,empty,full,announcement,reload}) {
   let version=0,frame=0,mode="boot",value=-1;
   function fill(amount) {
     const p=Math.max(0,Math.min(1,amount)),edge=8+573*p;
@@ -12,9 +12,8 @@ export function createLoading({screen,game,text,progress,empty,full,announcement
     cancelAnimationFrame(frame);version++;mode=nextMode;value=-1;
     screen.hidden=false;screen.dataset.mode=mode;delete screen.dataset.closing;
     game.inert=true;game.setAttribute("aria-busy","true");
-    cancel.hidden=mode!=="pending";reload.hidden=true;announcement.textContent=label;
-    if(mode==="pending") {fill(.54);progress.removeAttribute("aria-valuenow");text.textContent=label;cancel.focus({preventScroll:true});}
-    else {fill(0);text.textContent="0% 加载中...";}
+    reload.hidden=true;announcement.textContent=label;
+    fill(0);text.textContent="0% 加载中...";
     return version;
   }
   function hide() {
@@ -46,10 +45,9 @@ export function createLoading({screen,game,text,progress,empty,full,announcement
   function fail(token,message) {
     if(token!==version)return;
     cancelAnimationFrame(frame);screen.dataset.mode="error";text.textContent=message;
-    announcement.textContent=message;reload.hidden=false;cancel.hidden=true;reload.focus({preventScroll:true});
+    announcement.textContent=message;reload.hidden=false;reload.focus({preventScroll:true});
   }
-  function label(token,message) {if(token===version){text.textContent=message;announcement.textContent=message;}}
-  return {show,hide,finish,timed,fail,label,get mode(){return mode;}};
+  return {show,hide,finish,timed,fail};
 }
 
 export async function prepareArtwork(urls) {

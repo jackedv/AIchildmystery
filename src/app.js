@@ -2,13 +2,15 @@ import { LEVEL } from "./level.js";
 import { readProgress, recordAttempt, STORE_KEY } from "./progress.js";
 import { validScores, orderedScores } from "./scoring.js";
 import { createLoading, prepareArtwork } from "./loading.js";
+import { createResultPanel } from "./result-panel.js";
 
 const $ = id => document.getElementById(id);
 const progress = readProgress(localStorage);
 const state = { view: "cover", intro: 0, busy: false, resolved: false, context: [], controller: null, request: 0, composing: false, gesture: false };
 let tooltipTimer, selected, bannerTimer, bannerVisit=0;
 const music = $("background-music"), input = $("idea-input"), send = $("send-idea");
-const loading=createLoading({screen:$("loading-screen"),game:$("game"),text:$("loading-text"),progress:$("loading-progress"),empty:$("loading-empty"),full:$("loading-full"),announcement:$("loading-announcement"),cancel:$("loading-cancel"),reload:$("loading-reload")});
+const loading=createLoading({screen:$("loading-screen"),game:$("game"),text:$("loading-text"),progress:$("loading-progress"),empty:$("loading-empty"),full:$("loading-full"),announcement:$("loading-announcement"),reload:$("loading-reload")});
+const resultPanel=createResultPanel({panel:$("feedback"),button:$("result-button")});
 music.volume = .22;
 function save() { try { localStorage.setItem(STORE_KEY, JSON.stringify(progress)); } catch {} }
 function scaleStage() {
@@ -23,7 +25,11 @@ function musicState() {
   if (progress.sound && state.gesture && !document.hidden) music.play().catch(() => {});
   else music.pause();
 }
-function cancelAttempt() { state.request++; state.controller?.abort(); state.controller = null; state.busy = false; input.disabled = false; if(loading.mode==="pending") loading.hide(); }
+function sceneWaiting(waiting,label="AI 正在思考你的方案") {
+  $("scene-wait").hidden=!waiting;$("scene-wait-label").textContent=waiting?label:"";
+  $("scene-view").setAttribute("aria-busy",String(waiting));
+}
+function cancelAttempt() { state.request++; state.controller?.abort(); state.controller = null; state.busy = false; input.disabled = false; sceneWaiting(false); }
 function hideLevelBanner() {
   bannerVisit++;
   clearTimeout(bannerTimer); $("level-banner").dataset.state="hidden"; $("level-banner").inert=true; $("rules-toggle").hidden=true;
@@ -43,7 +49,7 @@ function showLevelBanner() {
   });
 }
 function view(name) {
-  cancelAttempt(); hideTooltip(); closeRules(); hideLevelBanner();
+  cancelAttempt(); resultPanel.clear(); hideTooltip(); closeRules(); hideLevelBanner();
   state.view = name;
   document.body.dataset.view = name;
   for (const section of document.querySelectorAll(".view")) section.hidden = section.id !== name + "-view";
@@ -54,6 +60,7 @@ function view(name) {
     $("completion-mark").hidden = !progress.completed;
     $("enter-level").textContent = progress.completed ? "再玩一次 →" : "开始这一关 →";
     $("next-state").textContent = progress.completed ? "已解锁 · 待开放" : "完成第一关后解锁 · 待开放";
+    $("coming-note").textContent="现在可以体验第一关。已经完成，也能回来试一种新办法。";
   }
   musicState(); updateInput();
   if(name==="scene") showLevelBanner();
@@ -61,7 +68,7 @@ function view(name) {
 function openBook() { state.gesture = true; view("levels"); $("enter-level").focus({preventScroll:true}); }
 $("book-cover").addEventListener("click", openBook); $("start-reading").addEventListener("click", openBook);
 function resetScene() {
-  cancelAttempt(); state.context = []; input.value = ""; $("scene-image").src = LEVEL.scene;
+  cancelAttempt(); resultPanel.clear(); state.context = []; input.value = ""; $("scene-image").src = LEVEL.scene;
   state.resolved = false;
   $("scene-image").alt = "公主在左岸，观察场景中的物体，想办法安全过河";
   $("feedback").hidden = true; $("input-feedback").hidden = true;
@@ -77,7 +84,6 @@ $("intro-continue").addEventListener("click", () => {
 });
 $("intro-continue").addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); $("intro-continue").click(); } });
 $("back-button").addEventListener("click", () => view(state.view === "levels" ? "cover" : "levels"));
-$("loading-cancel").addEventListener("click",()=>{view("levels");$("enter-level").focus({preventScroll:true});});
 $("loading-reload").addEventListener("click",()=>location.reload());
 $("music-button").addEventListener("click", () => { state.gesture = true; progress.sound = !progress.sound; save(); musicState(); });
 document.addEventListener("visibilitychange", musicState);
@@ -127,6 +133,10 @@ function action(label, callback, secondary=false) {
   b.addEventListener("click", callback); $("feedback-actions").append(b);
 }
 function retry() { resetScene(); showLevelBanner(); input.focus({preventScroll:true}); }
+function nextLevel() {
+  view("levels"); $("coming-note").textContent="第二关待开放，故事还在准备中。你也可以再玩第一关，试一种新办法。";
+  $("coming-note").focus({preventScroll:true});
+}
 function showScores(scores) {
   const ordered = orderedScores(scores), ns = "http://www.w3.org/2000/svg";
   const svg = document.createElementNS(ns,"svg"); svg.setAttribute("viewBox","0 0 360 280"); svg.setAttribute("role","img");
@@ -151,6 +161,7 @@ function showScores(scores) {
   for(const s of ordered) { const li=document.createElement("li"),strong=document.createElement("strong"),p=document.createElement("p");strong.textContent=s.name+" · "+s.score+"分";p.textContent=s.reason;li.append(strong,p);$("score-reasons").append(li); }
 }
 function feedback(result) {
+  resultPanel.clear();
   const box=$("feedback"); box.dataset.status=result.status; box.hidden=false;
   $("feedback-actions").replaceChildren(); $("feedback-note").hidden=true;
   $("score-panel").hidden=result.status!=="success";
@@ -161,13 +172,15 @@ function feedback(result) {
   if(result.status==="success") {
     showScores(result.scores);
     $("feedback-note").hidden=false; $("feedback-note").textContent="下一关已解锁，故事还在准备中。";
-    action("再试一种方法",retry); action("返回关卡本",()=>view("levels"),true);
+    action("再试一种方法",retry); action("进入下一关",nextLevel); action("返回关卡本",()=>view("levels"),true);
   } else if(result.status==="failure") {
     action("重新描述",retry); action("查看物体信息",retry,true);
   } else if(result.status==="clarify") {
     action("重新描述方案",retry,true); input.focus({preventScroll:true}); input.select();
   } else { action("收起提示",()=>{box.hidden=true;input.focus({preventScroll:true});},true); input.focus({preventScroll:true}); }
-  if(["success","failure"].includes(result.status)) $("feedback-actions").querySelector("button")?.focus({preventScroll:true});
+  if(["success","failure"].includes(result.status)) {
+    resultPanel.show(); $("feedback-actions").querySelector("button")?.focus({preventScroll:true});
+  }
 }
 function validateResponse(result) {
   if(!result || !["success","failure","clarify","unavailable","system_error"].includes(result.status)) throw new Error("invalid response");
@@ -181,10 +194,9 @@ $("idea-form").addEventListener("submit", async e => {
   const text=input.value.trim(), length=Array.from(text).length;
   if(length<3 || length>80) { $("input-feedback").textContent="用 3–80 个字，把你的想法写成一句话吧。"; $("input-feedback").hidden=false; return; }
   if(state.context.length>=5) { feedback({status:"system_error",message:"我们已经问了五次。请重新描述一个完整的方案，再试一次。"}); action("重新描述方案",retry); return; }
-  state.busy=true; hideTooltip(); closeRules(); $("feedback").hidden=true;
+  state.busy=true; resultPanel.clear(); hideTooltip(); closeRules();
   const request=++state.request, controller=new AbortController(); state.controller=controller;
-  const loadingToken=loading.show("pending","正在理解你的想法……");
-  input.value="正在理解你的想法……"; updateInput();
+  sceneWaiting(true);input.value=text;updateInput();
   const timeout=setTimeout(()=>controller.abort("timeout"),180000);
   try {
     const response=await fetch("/api/attempt",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({levelId:LEVEL.id,text,context:state.context}),signal:controller.signal});
@@ -195,7 +207,7 @@ $("idea-form").addEventListener("submit", async e => {
     if(result.status==="clarify") state.context.push({text,question:result.question});
     else if(["success","failure"].includes(result.status)) {
       // Decode before committing progress. A broken result image is a system error.
-      loading.label(loadingToken,"正在准备结果画面……");
+      sceneWaiting(true,"正在准备结果画面");
       const img=new Image(); img.src=result.image; await img.decode();
       if(request!==state.request || state.view!=="scene") return;
       $("scene-image").src=result.image; $("scene-image").alt=result.change || "你的想法产生的结果画面";
@@ -204,13 +216,12 @@ $("idea-form").addEventListener("submit", async e => {
       state.context=[]; recordAttempt(progress,text,result); save();
     }
     if(!["success","failure"].includes(result.status)) { recordAttempt(progress,text,result); save(); }
-    await loading.finish(loadingToken);
-    if(request!==state.request || state.view!=="scene") return;
+    sceneWaiting(false);
     state.busy=false;updateInput();feedback(result);
   } catch(error) {
     if(request!==state.request || state.view!=="scene") return;
     input.value=text; state.busy=false; updateInput();
-    loading.hide();
+    sceneWaiting(false);
     const result={status:"system_error",message:controller.signal.aborted ? "思考时间有点长，请稍后重试。" : "暂时没能连接思考服务。你的想法还在，请稍后重试。"};
     recordAttempt(progress,text,result);save();feedback(result);
   } finally {

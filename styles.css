@@ -89,6 +89,9 @@ img { user-select: none; }
 .music-button img { left: -23.9px; top: -19.8px; width: 128.2px; height: 118.8px; }
 .back-button { left: 64px; }
 .music-button { right: 61px; }
+.result-button { position: absolute; left: 166px; top: 35px; width: 80px; height: 80px; padding: 17px; border: 3px solid #8d592f; border-radius: 50%; background: #fff2ce; color: #356047; z-index: var(--z-controls); transition: transform .18s ease-out; }
+.result-button svg { display: block; width: 100%; height: 100%; }
+.result-button:hover { transform: scale(1.06); }
 .music-off { position: absolute; width: 45px; height: 4px; background: #995d2c; left: 17px; top: 39px; transform: rotate(-45deg); border-radius: 4px; opacity: 0; }
 .music-button[aria-pressed="false"] .music-off { opacity: 1; }
 .idea-form { position: absolute; left: 492px; top: 817px; width: 688px; height: 85px; background: url("assets/ui/input-clean.png") -74px -99px / 839px 280px no-repeat; display: flex; align-items: center; z-index: var(--z-controls); }
@@ -104,7 +107,7 @@ img { user-select: none; }
 .object-tooltip { position: fixed; width: min(310px, calc(100vw - 24px)); padding: 15px 18px; color: #533c25; background: #fff1cf; border: 2px solid #b4864d; border-radius: 12px; font-size: 16px; z-index: var(--z-tooltip); pointer-events: none; }
 .object-tooltip strong { font-size: 19px; }
 .object-tooltip p { margin-top: 7px; line-height: 1.65; }
-.feedback { position: absolute; left: 515px; bottom: 148px; width: 642px; padding: 23px 29px; background: #fff2d8; border: 3px solid #ac7c48; border-radius: 14px; z-index: var(--z-panel); }
+.feedback { position: absolute; left: 515px; bottom: 148px; width: 642px; padding: 23px 29px; background: #fff2d8; border: 3px solid #ac7c48; border-radius: 14px; z-index: var(--z-panel); transform-origin: center; }
 .feedback-kicker { font-size: 17px; color: #856342; font-weight: 700; margin-bottom: 6px; }
 .feedback h2 { font-size: 28px; color: #684323; }
 .feedback[data-status="success"] h2 { color: #356047; }
@@ -138,6 +141,7 @@ body[data-view="intro"] { background: #050505; }
 .loading-progress { position: absolute; left: 552px; top: 652px; width: 589px; height: 60px; }
 .loading-progress img { position: absolute; inset: 0; width: 589px; height: 60px; max-width: none; }
 #loading-full { clip-path: inset(0 100% 0 0); }
-.loading-screen[data-mode="pending"] .loading-progress { animation: loading-breathe 1.8s ease-in-out infinite; }
 .loading-action { position: absolute; top: 742px; left: 726px; width: 220px; min-height: 52px; padding: 10px 20px; color: #644328; background: #fff2ce; border: 2px solid #a8743d; border-radius: 100px; font-size: 22px; font-weight: 700; }
-@keyframes loading-breathe { 0%,100% { opacity: .45; } 50% { opacity: 1; } }
+.scene-wait { position: absolute; left: 796px; top: 430px; width: 80px; height: 80px; display: grid; place-items: center; z-index: var(--z-panel); pointer-events: none; }
+.scene-spinner { width: 64px; height: 64px; border: 6px solid #fff2ce; border-top-color: #356047; border-radius: 50%; box-shadow: 0 0 0 2px #a8743d; animation: scene-spin 1s linear infinite; }
+@keyframes scene-spin { to { transform: rotate(360deg); } }
