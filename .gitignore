@@ -1,0 +1,7 @@
+.env
+.env.*
+!.env.example
+local-config.json
+node_modules/
+__pycache__/
+*.log

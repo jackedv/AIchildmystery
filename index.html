@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f6e7d3">
+  <title>公主救王子｜第一关</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="app-shell">
+    <header id="app-header" class="topbar" hidden>
+      <div>
+        <p class="eyebrow">AI 儿童创造解谜 · 第一章</p>
+        <h1>公主救王子</h1>
+      </div>
+      <div class="top-actions">
+        <span id="mode-badge" class="mode-badge">演示模式</span>
+        <button id="settings-button" class="icon-button" type="button" aria-label="打开 AI 设置">⚙ AI 设置</button>
+      </div>
+    </header>
+
+    <section id="view-book" class="view book-view" aria-label="故事书首页">
+      <div class="book-cover">
+        <div class="cover-stars">✦　·　✧　·　✦</div>
+        <div class="cover-illustration" aria-hidden="true"><span class="cover-moon"></span><span class="cover-tower"></span><span class="cover-tree"></span></div>
+        <p class="eyebrow">一本可以动手创造的故事书</p>
+        <h2>公主救王子</h2>
+        <p class="cover-subtitle">AI 儿童创造解谜</p>
+        <button id="start-reading" class="cover-button" type="button">开始阅读 <span>→</span></button>
+        <button id="sound-toggle" class="sound-toggle" type="button" aria-pressed="true">🔊 翻书声音</button>
+      </div>
+      <div class="book-intro">
+        <p class="eyebrow">欢迎来到创造解谜故事书</p>
+        <h2>你的办法，<br>会改变故事。</h2>
+        <p>先观察，再想象。点击画面里的物体，看看它们有什么真实的力量，然后用一句话告诉公主下一步怎么做。</p>
+        <div class="book-rule-list"><span>01　观察线索</span><span>02　说出办法</span><span>03　看见结果</span></div>
+      </div>
+    </section>
+
+    <section id="view-levels" class="view levels-view" hidden aria-label="关卡选择">
+      <div class="page-heading"><button id="back-to-book" class="back-button" type="button">← 故事书封面</button><p class="eyebrow">第一章 · 旅途开始</p><h2>选择一页故事</h2><p>每完成一关，下一页就会亮起来。已经完成的故事可以再次挑战。</p></div>
+      <div id="level-cards" class="level-cards"></div>
+    </section>
+
+    <section id="view-intro" class="view intro-view" hidden aria-label="关卡开场白">
+      <div class="intro-stars" aria-hidden="true">✦　·　✧　·　✦</div>
+      <div id="intro-copy" class="intro-copy-large"></div>
+      <button id="intro-continue" class="intro-continue" type="button">点击继续</button>
+      <p class="intro-key-tip">也可以按 Enter</p>
+    </section>
+
+    <section id="view-game" class="view game-layout" aria-label="游戏区域" hidden>
+      <div class="scene-column">
+        <div id="scene" class="scene" aria-label="村庄河边场景">
+          <div class="scene-vignette"></div>
+          <div id="hotspots" class="hotspots"></div>
+          <div id="scene-status" class="scene-status" aria-live="polite"></div>
+        </div>
+        <p class="scene-hint">点击画面中的物体，先看看它能做什么。</p>
+      </div>
+
+      <aside class="story-panel">
+        <section class="story-card intro-card">
+          <div class="chapter-mark">01</div>
+          <div>
+            <p class="eyebrow">村庄河边 · 踏上旅途</p>
+            <h2>河对岸就是城堡</h2>
+            <p class="intro-copy">公主来到村口，城堡方向的河流挡住了去路。观察身边的东西，想一个安全到达对岸的办法吧。</p>
+          </div>
+        </section>
+
+        <section class="progress-card story-card" aria-labelledby="progress-title">
+          <div class="section-heading"><h3 id="progress-title">旅途地图</h3><span id="progress-count">1 / 5</span></div>
+          <div id="level-progress" class="level-progress"></div>
+        </section>
+
+        <section class="facts-card story-card" aria-labelledby="facts-title">
+          <div class="section-heading"><h3 id="facts-title">你发现的事实</h3><span id="fact-count">0</span></div>
+          <div id="fact-list" class="fact-list"><p class="empty-state">点击场景物体，线索会出现在这里。</p></div>
+        </section>
+
+        <section class="input-card story-card" aria-labelledby="input-title">
+          <div class="section-heading"><h3 id="input-title">你准备怎么做？</h3><span id="char-count">0 / 80</span></div>
+          <label class="sr-only" for="plan-input">用一句话描述方案</label>
+          <textarea id="plan-input" rows="3" maxlength="80" placeholder="例如：把倒下的树推到河上当桥走过去。"></textarea>
+          <div class="input-footer">
+            <span id="input-tip">3–80 个字，一句话就够了。</span>
+            <button id="submit-button" class="primary-button" type="button">让 AI 判断 <span>→</span></button>
+          </div>
+        </section>
+
+        <section id="result-card" class="result-card story-card" hidden aria-live="polite">
+          <div id="result-icon" class="result-icon">✦</div>
+          <div><p id="result-label" class="result-label">结果</p><h3 id="result-title">准备好了</h3><p id="result-copy"></p></div>
+          <div class="result-actions"><button id="retry-button" class="text-button" type="button">再想一个办法</button><button id="continue-button" class="primary-button" type="button" hidden>继续下一关 <span>→</span></button></div>
+        </section>
+      </aside>
+    </section>
+  </main>
+
+  <dialog id="settings-dialog" class="settings-dialog">
+    <form method="dialog" id="settings-form">
+      <div class="dialog-heading"><div><p class="eyebrow">连接方式</p><h2>AI 设置</h2></div><button class="close-button" value="cancel" type="submit" aria-label="关闭">×</button></div>
+      <label class="field-label" for="mode-select">模式</label>
+      <select id="mode-select"><option value="demo">演示模式（无需密钥）</option><option value="api">AI API 模式</option></select>
+      <label class="field-label" for="endpoint-input">接口地址</label>
+      <input id="endpoint-input" type="url" autocomplete="url" spellcheck="false">
+      <label class="field-label" for="model-input">模型名称</label>
+      <input id="model-input" type="text" autocomplete="off" spellcheck="false">
+      <label class="field-label" for="api-key-input">API Key <span>只保存到本浏览器</span></label>
+      <input id="api-key-input" type="password" autocomplete="off" spellcheck="false" placeholder="sk-…">
+      <p class="setting-note">API 模式需要接口允许浏览器跨域访问。若双击 HTML 后请求被浏览器拦截，请运行项目内的本地静态服务器。</p>
+      <div class="dialog-actions"><button id="clear-key-button" class="text-button" type="button">清除本机 Key</button><button id="save-settings-button" class="primary-button" value="default" type="submit">保存设置</button></div>
+    </form>
+  </dialog>
+
+  <script src="src/app.js"></script>
+</body>
+</html>
