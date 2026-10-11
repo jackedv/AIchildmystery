@@ -2,9 +2,10 @@
   "name": "ai-child-mystery",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "description": "AI 儿童创造解谜：公主救王子第一关本地 Web 原型",
   "scripts": {
-    "start": "python -m http.server 4173 --directory .",
-    "check": "python tools/check_project.py"
+    "start": "node server/start.js",
+    "check": "node --test tests/*.test.js"
   }
 }

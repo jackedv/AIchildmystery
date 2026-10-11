@@ -5,3 +5,7 @@ local-config.json
 node_modules/
 __pycache__/
 *.log
+.tools/
+.local/
+verification/
+!.impeccable/live/config.json
